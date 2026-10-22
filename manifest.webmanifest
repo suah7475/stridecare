@@ -1,0 +1,56 @@
+{
+  "name": "StrideCare — 뇌졸중 보행 정밀 계수",
+  "short_name": "StrideCare",
+  "description": "뇌졸중 환자의 느리고 비대칭한 보행을 스마트폰 센서로 정밀하게 계수합니다. 의료기기가 아닙니다.",
+  "lang": "ko-KR",
+  "dir": "ltr",
+  "id": "./index.html",
+  "start_url": "./index.html",
+  "scope": "./",
+  "display": "standalone",
+  "display_override": ["standalone", "minimal-ui"],
+  "orientation": "portrait-primary",
+  "background_color": "#070B12",
+  "theme_color": "#070B12",
+  "categories": ["medical", "health", "fitness"],
+  "icons": [
+    {
+      "src": "assets/icon-180.png",
+      "sizes": "180x180",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "assets/icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "assets/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "assets/icon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any"
+    }
+  ],
+  "shortcuts": [
+    {
+      "name": "측정 시작",
+      "short_name": "측정",
+      "url": "./index.html?action=measure",
+      "icons": [{ "src": "assets/icon-192.png", "sizes": "192x192" }]
+    },
+    {
+      "name": "측정 기록",
+      "short_name": "기록",
+      "url": "./index.html?action=history",
+      "icons": [{ "src": "assets/icon-192.png", "sizes": "192x192" }]
+    }
+  ]
+}

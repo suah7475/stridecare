@@ -1,0 +1,553 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, maximum-scale=5" />
+<meta name="theme-color" content="#070B12" />
+<meta name="description" content="뇌졸중 환자의 느리고 비대칭한 보행을 정밀하게 계수하는 스마트폰 앱" />
+<title>StrideCare — 뇌졸중 보행 정밀 계수</title>
+<link rel="manifest" href="manifest.webmanifest" />
+<link rel="icon" href="assets/icon.svg" type="image/svg+xml" />
+<link rel="apple-touch-icon" href="assets/icon-180.png" />
+<meta name="apple-mobile-web-app-capable" content="yes" />
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+<meta name="apple-mobile-web-app-title" content="StrideCare" />
+<link rel="preconnect" href="https://cdn.jsdelivr.net" />
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable-dynamic-subset.min.css" />
+<link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+<svg aria-hidden="true" style="position:absolute;width:0;height:0;overflow:hidden">
+  <defs>
+    <symbol id="i-step" viewBox="0 0 24 24"><path d="M7 4.5c1.7 0 2.6 1.4 2.6 3.1 0 1.3-.5 2-.5 3.2 0 1 .6 1.7.6 2.9 0 1.9-1.2 3.3-3 3.3-1.9 0-3.2-1.4-3.2-3.4 0-1.1.5-1.9.5-2.9 0-1.2-.5-1.8-.5-3.1C3.5 5.9 4.7 4.5 7 4.5Z"/><path d="M16.8 8.6c1.6 0 2.5 1.3 2.5 3 0 1.2-.5 1.9-.5 3 0 1 .5 1.6.5 2.7 0 1.8-1.1 3.1-2.8 3.1-1.8 0-3-1.3-3-3.2 0-1 .5-1.8.5-2.8 0-1.1-.5-1.7-.5-2.9 0-1.7 1.1-2.9 3.3-2.9Z"/></symbol>
+    <symbol id="i-chart" viewBox="0 0 24 24"><path d="M4 19V5M4 19h16"/><path d="M8 15l3.2-4.2 3 2.4L19 7"/></symbol>
+    <symbol id="i-check" viewBox="0 0 24 24"><path d="M12 3l7 3v5.5c0 4.4-2.9 7.8-7 9.5-4.1-1.7-7-5.1-7-9.5V6l7-3Z"/><path d="M9 12l2.2 2.2L15.5 10"/></symbol>
+    <symbol id="i-sliders" viewBox="0 0 24 24"><path d="M4 8h9M17 8h3M4 16h4M12 16h8"/><circle cx="15" cy="8" r="2"/><circle cx="10" cy="16" r="2"/></symbol>
+    <symbol id="i-arrow" viewBox="0 0 24 24"><path d="M5 12h14M13 6l6 6-6 6"/></symbol>
+    <symbol id="i-back" viewBox="0 0 24 24"><path d="M19 12H5M11 18l-6-6 6-6"/></symbol>
+    <symbol id="i-pause" viewBox="0 0 24 24"><path d="M9 5v14M15 5v14"/></symbol>
+    <symbol id="i-play" viewBox="0 0 24 24"><path d="M8 5l11 7-11 7V5Z"/></symbol>
+    <symbol id="i-stop" viewBox="0 0 24 24"><rect x="6" y="6" width="12" height="12" rx="2"/></symbol>
+    <symbol id="i-phone" viewBox="0 0 24 24"><rect x="7" y="2.5" width="10" height="19" rx="2.5"/><path d="M10.5 18.5h3"/></symbol>
+    <symbol id="i-belt" viewBox="0 0 24 24"><path d="M3 8h18M3 16h18M7 8v8M17 8v8"/><rect x="9" y="10.5" width="6" height="3" rx="1"/></symbol>
+    <symbol id="i-walk" viewBox="0 0 24 24"><circle cx="13" cy="4.5" r="2"/><path d="M11 8.5l-2.2 4.2 2.7 2.1L10 20M14.5 8.5l1.8 3.6 2.7 1.1M11.5 15l3 1.4 1.7 3.3"/></symbol>
+    <symbol id="i-export" viewBox="0 0 24 24"><path d="M12 16V4M8 8l4-4 4 4M4 15v3.5A1.5 1.5 0 0 0 5.5 20h13a1.5 1.5 0 0 0 1.5-1.5V15"/></symbol>
+    <symbol id="i-close" viewBox="0 0 24 24"><path d="M6 6l12 12M18 6L6 18"/></symbol>
+    <symbol id="i-warn" viewBox="0 0 24 24"><path d="M12 4l9 16H3l9-16Z"/><path d="M12 10v4M12 17.2v.1"/></symbol>
+    <symbol id="i-info" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 11v5M12 7.8v.1"/></symbol>
+    <symbol id="i-sound" viewBox="0 0 24 24"><path d="M5 10v4h3l4 3V7L8 10H5Z"/><path d="M15.5 9a4 4 0 0 1 0 6M18 6.5a7.5 7.5 0 0 1 0 11"/></symbol>
+    <symbol id="i-vibe" viewBox="0 0 24 24"><rect x="8" y="6" width="8" height="12" rx="1.5"/><path d="M4 9v6M20 9v6M2 11v2M22 11v2"/></symbol>
+  </defs>
+</svg>
+
+<div class="app" id="app">
+  <aside class="rail">
+    <div class="brand">
+      <span class="brand__mark" aria-hidden="true">
+        <svg viewBox="0 0 40 40"><path d="M6 28c5.5 0 6.5-14 12-14s6.5 14 12 14" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round"/><circle cx="34" cy="28" r="2.4" fill="currentColor"/></svg>
+      </span>
+      <span class="brand__text"><strong>StrideCare</strong><small>보행 정밀 계수</small></span>
+    </div>
+
+    <nav class="rail__nav" aria-label="주요 메뉴">
+      <button class="nav-item is-active" data-nav="measure"><svg class="ico"><use href="#i-step"/></svg><span>측정</span></button>
+      <button class="nav-item" data-nav="history"><svg class="ico"><use href="#i-chart"/></svg><span>기록</span></button>
+      <button class="nav-item" data-nav="validation"><svg class="ico"><use href="#i-check"/></svg><span>검증</span></button>
+      <button class="nav-item" data-nav="settings"><svg class="ico"><use href="#i-sliders"/></svg><span>설정</span></button>
+    </nav>
+
+    <div class="rail__foot">
+      <div class="patient-mini" id="railPatient">
+        <span class="avatar" aria-hidden="true">환</span>
+        <span class="patient-mini__txt"><strong>환자 미등록</strong><small>설정에서 추가</small></span>
+      </div>
+      <p class="disclaimer">의료기기가 아닙니다.<br>연구·선별 목적으로 사용하세요.</p>
+    </div>
+  </aside>
+
+  <main class="main">
+    <header class="topbar">
+      <div class="topbar__brand">
+        <span class="brand__mark brand__mark--sm" aria-hidden="true">
+          <svg viewBox="0 0 40 40"><path d="M6 28c5.5 0 6.5-14 12-14s6.5 14 12 14" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round"/><circle cx="34" cy="28" r="2.4" fill="currentColor"/></svg>
+        </span>
+        <span>StrideCare</span>
+      </div>
+      <div class="topbar__right">
+        <span class="sensor-chip" id="sensorChip"><span class="dot"></span> 센서 확인 중</span>
+        <button class="icon-btn" id="quickSettings" aria-label="설정 열기"><svg class="ico"><use href="#i-sliders"/></svg></button>
+      </div>
+    </header>
+
+    <!-- ============ MEASURE ============ -->
+    <section class="screen is-active" id="screen-measure">
+      <div class="measure-grid">
+        <div class="measure-intro">
+          <p class="eyebrow" id="todayLabel">오늘의 측정</p>
+          <h1>보행을<br>기록하세요</h1>
+          <p class="lede">허리에 착용한 스마트폰으로 걸음 수와 좌우 비대칭을 측정합니다. 일반 만보계와 달리 느린 보행과 편마비 패턴에 맞춰 분석합니다.</p>
+
+          <div class="profile-strip" id="profileStrip">
+            <span class="avatar avatar--lg" aria-hidden="true">환</span>
+            <div class="profile-strip__txt">
+              <strong id="psName">환자 미등록</strong>
+              <small id="psMeta">설정에서 환자 정보를 입력하세요</small>
+            </div>
+            <button class="text-btn" id="editProfile">변경</button>
+          </div>
+
+          <div class="protocol-block">
+            <p class="label">측정 프로토콜</p>
+            <div class="segmented" role="radiogroup" aria-label="측정 프로토콜" id="protocolGroup">
+              <button role="radio" aria-checked="true" class="seg is-active" data-protocol="free"><span>자유 보행</span><small>제한 없음</small></button>
+              <button role="radio" aria-checked="false" class="seg" data-protocol="2min"><span>2분 보행</span><small>2MWT</small></button>
+              <button role="radio" aria-checked="false" class="seg" data-protocol="6min"><span>6분 보행</span><small>6MWT</small></button>
+              <button role="radio" aria-checked="false" class="seg" data-protocol="10m"><span>10m 보행</span><small>속도 측정</small></button>
+            </div>
+            <p class="hint" id="protocolHint">편안한 속도로 걸으세요. 종료 버튼을 누를 때까지 계속 측정합니다.</p>
+          </div>
+        </div>
+
+        <div class="start-column">
+          <div class="start-wrap">
+            <div class="start-halo" aria-hidden="true"></div>
+            <button class="start-btn" id="startBtn" aria-describedby="startMeta">
+              <span class="start-btn__inner">
+                <svg class="start-btn__ico"><use href="#i-walk"/></svg>
+                <span class="start-btn__label">측정 시작</span>
+              </span>
+            </button>
+            <p class="start-meta" id="startMeta">탭하여 센서 연결</p>
+          </div>
+
+          <div class="placement">
+            <p class="label">착용 위치</p>
+            <div class="placement__row">
+              <div class="place is-best"><svg class="ico"><use href="#i-belt"/></svg><span>허리 벨트<small>가장 정확</small></span></div>
+              <div class="place"><svg class="ico"><use href="#i-phone"/></svg><span>앞주머니<small>사용 가능</small></span></div>
+              <div class="place is-bad"><svg class="ico"><use href="#i-walk"/></svg><span>손에 들기<small>권장하지 않음</small></span></div>
+            </div>
+            <p class="hint hint--tight">보조기구(지팡이·워커)를 사용한다면 측정 후 관찰자 계수로 확인하세요.</p>
+          </div>
+        </div>
+      </div>
+
+      <div class="recent-block" id="recentBlock" hidden>
+        <div class="section-head">
+          <h2>최근 측정</h2>
+          <button class="text-btn" data-nav="history">전체 기록 <svg class="ico ico--sm"><use href="#i-arrow"/></svg></button>
+        </div>
+        <div class="recent-card" id="recentCard"></div>
+      </div>
+
+      <div class="safety-note">
+        <svg class="ico"><use href="#i-warn"/></svg>
+        <p><strong>안전 안내</strong> — 보행 중 넘어질 위험이 있는 환자는 반드시 보호자나 치료사가 함께 관찰하세요. 측정 중 스마트폰을 조작하지 마세요.</p>
+      </div>
+    </section>
+
+    <!-- ============ LIVE ============ -->
+    <section class="screen" id="screen-live" aria-label="측정 중">
+      <div class="live-top">
+        <div class="live-top__left">
+          <span class="live-dot" aria-hidden="true"></span>
+          <span id="liveProtocol">자유 보행</span>
+          <span class="live-sep">·</span>
+          <span id="liveSource">센서</span>
+        </div>
+        <div class="live-top__right">
+          <span class="live-timer" id="liveTimer">00:00</span>
+          <button class="icon-btn icon-btn--ghost" id="liveSettingsBtn" aria-label="측정 설정"><svg class="ico"><use href="#i-sliders"/></svg></button>
+        </div>
+      </div>
+
+      <div class="live-main">
+        <div class="count-zone">
+          <div class="count-label">걸음 수</div>
+          <div class="count-value"><span id="liveSteps">0</span><span class="count-unit">보</span></div>
+          <div class="count-sub">
+            <div class="count-sub__item"><strong id="liveCadence">0</strong><span>steps/min</span></div>
+            <div class="count-sub__div"></div>
+            <div class="count-sub__item"><strong id="liveTarget">—</strong><span>목표 시간</span></div>
+            <div class="count-sub__div"></div>
+            <div class="count-sub__item"><strong id="liveQuality">—</strong><span>신호 품질</span></div>
+          </div>
+        </div>
+
+        <div class="wave-panel">
+          <div class="wave-head">
+            <span>수직 가속도</span>
+            <span class="wave-legend"><i class="lg lg--a"></i>좌<i class="lg lg--b"></i>우</span>
+          </div>
+          <canvas id="liveWave" aria-label="실시간 보행 파형"></canvas>
+          <div class="wave-foot">
+            <span id="waveHint">보행을 시작하면 파형이 나타납니다</span>
+            <span class="mono" id="liveHz">50 Hz</span>
+          </div>
+        </div>
+
+        <div class="live-side">
+          <div class="balance-card">
+            <div class="balance-head"><span>좌우 균형</span><strong id="balancePct">—</strong></div>
+            <div class="balance-bar"><span class="balance-bar__a" id="balanceA"></span><span class="balance-bar__b" id="balanceB"></span></div>
+            <div class="balance-legend"><span id="balanceLeft">좌 0</span><span id="balanceRight">우 0</span></div>
+          </div>
+
+          <div class="manual-card">
+            <div class="manual-head">
+              <span>관찰자 계수</span>
+              <label class="switch switch--sm">
+                <input type="checkbox" id="manualToggle" aria-label="관찰자 계수 사용" />
+                <span class="switch__track"><span class="switch__thumb"></span></span>
+              </label>
+            </div>
+            <button class="manual-btn" id="manualBtn" disabled>
+              <span id="manualCount">0</span>
+              <small>탭하여 +1</small>
+            </button>
+            <p class="hint hint--tight">검증용입니다. 환자와 같은 속도로 직접 세어 보세요.</p>
+          </div>
+
+          <div class="feedback-card">
+            <div class="fb-row">
+              <span><svg class="ico ico--sm"><use href="#i-sound"/></svg> 소리</span>
+              <label class="switch switch--sm"><input type="checkbox" id="soundToggle" aria-label="걸음 소리 피드백" /><span class="switch__track"><span class="switch__thumb"></span></span></label>
+            </div>
+            <div class="fb-row">
+              <span><svg class="ico ico--sm"><use href="#i-vibe"/></svg> 진동</span>
+              <label class="switch switch--sm"><input type="checkbox" id="vibeToggle" aria-label="진동 피드백" /><span class="switch__track"><span class="switch__thumb"></span></span></label>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="live-controls">
+        <button class="btn btn--ghost" id="pauseBtn"><svg class="ico"><use href="#i-pause"/></svg><span>일시정지</span></button>
+        <button class="btn btn--stop" id="stopBtn"><svg class="ico"><use href="#i-stop"/></svg><span>측정 종료</span></button>
+      </div>
+
+      <p class="live-note" id="liveNote">화면이 꺼지지 않도록 유지됩니다.</p>
+    </section>
+
+    <!-- ============ RESULT ============ -->
+    <section class="screen" id="screen-result" aria-label="측정 결과">
+      <div class="result-head">
+        <button class="text-btn" id="resultBack"><svg class="ico ico--sm"><use href="#i-back"/></svg> 돌아가기</button>
+        <span class="pill" id="resultProtocol">자유 보행</span>
+      </div>
+
+      <div class="result-hero">
+        <div>
+          <p class="eyebrow" id="resultDate">2026년 10월 22일</p>
+          <div class="result-steps"><span id="resultSteps">0</span><small>걸음</small></div>
+          <div class="result-badges">
+            <span class="badge" id="resultQuality">품질 —</span>
+            <span class="badge badge--ghost" id="resultDuration">—</span>
+            <span class="badge badge--ghost" id="resultRefined" hidden>정밀 보정</span>
+          </div>
+        </div>
+        <div class="result-side">
+          <p class="label">이번 측정</p>
+          <p class="result-note" id="resultNote">—</p>
+        </div>
+      </div>
+
+      <div class="metric-strip">
+        <div class="metric"><span class="metric__k">케이던스</span><strong id="mCadence">—</strong><span class="metric__u">steps/min</span></div>
+        <div class="metric"><span class="metric__k">계단시간 비대칭</span><strong id="mAsym">—</strong><span class="metric__u">%</span></div>
+        <div class="metric"><span class="metric__k">걸음 변동계수</span><strong id="mCV">—</strong><span class="metric__u">%</span></div>
+        <div class="metric"><span class="metric__k" id="mSpeedKey">보행 속도</span><strong id="mSpeed">—</strong><span class="metric__u" id="mSpeedUnit">m/s</span></div>
+      </div>
+
+      <div class="result-grid">
+        <div class="panel">
+          <div class="panel__head"><h2>걸음 리듬</h2><span class="panel__meta" id="rhythmMeta">—</span></div>
+          <canvas id="tachogram" aria-label="걸음 간격 리듬"></canvas>
+          <p class="hint" id="rhythmHint">각 막대는 한 걸음의 시간 간격입니다. 막대가 번갈아 길고 짧으면 좌우 비대칭을 뜻합니다.</p>
+        </div>
+
+        <div class="panel">
+          <div class="panel__head"><h2>좌우 분포</h2><span class="panel__meta" id="sideMeta">—</span></div>
+          <div class="side-split">
+            <div class="side-bar side-bar--a"><span id="sideA" style="width:50%"></span></div>
+            <div class="side-bar side-bar--b"><span id="sideB" style="width:50%"></span></div>
+          </div>
+          <div class="side-counts"><span id="sideCountA">A 0</span><span id="sideCountB">B 0</span></div>
+          <div class="mini-stats">
+            <div><span>평균 걸음 간격</span><strong id="mInterval">—</strong></div>
+            <div><span>평균 충격 강도</span><strong id="mAmp">—</strong></div>
+          </div>
+          <p class="hint" id="sideHint">회전 신호로 좌우를 구분합니다. A/B는 착용 방향에 따라 좌/우가 바뀔 수 있습니다.</p>
+        </div>
+      </div>
+
+      <div class="panel panel--wide manual-compare" id="manualPanel">
+        <div class="panel__head"><h2>관찰자 계수와 비교</h2><span class="panel__meta">선택 사항</span></div>
+        <div class="compare-row">
+          <div class="compare-input">
+            <label for="manualInput">관찰자가 센 걸음 수</label>
+            <input id="manualInput" type="number" inputmode="numeric" min="0" max="9999" placeholder="예: 142" />
+          </div>
+          <button class="btn btn--primary" id="compareBtn">비교하기</button>
+        </div>
+        <div class="compare-result" id="compareResult" hidden></div>
+        <p class="hint">입력하면 이 측정이 검증 대시보드에 포함됩니다.</p>
+      </div>
+
+      <div class="panel panel--wide">
+        <div class="panel__head"><h2>메모</h2><span class="panel__meta">선택 사항</span></div>
+        <textarea id="resultNoteInput" rows="3" placeholder="보조기구, 컨디션, 통증, 낙상 위험 등"></textarea>
+      </div>
+
+      <div class="result-actions">
+        <button class="btn btn--ghost" id="discardBtn">삭제</button>
+        <button class="btn btn--primary btn--lg" id="saveBtn">기록 저장</button>
+      </div>
+    </section>
+
+    <!-- ============ HISTORY ============ -->
+    <section class="screen" id="screen-history" aria-label="기록">
+      <div class="page-head">
+        <div><p class="eyebrow">세션 기록</p><h1>기록</h1></div>
+        <div class="page-actions">
+          <button class="btn btn--ghost btn--sm" id="exportBtn"><svg class="ico ico--sm"><use href="#i-export"/></svg> CSV</button>
+        </div>
+      </div>
+
+      <div class="stat-row" id="historyStats"></div>
+
+      <div class="history-grid">
+        <div class="panel">
+          <div class="panel__head"><h2>케이던스 추이</h2><span class="panel__meta">steps/min</span></div>
+          <canvas id="trendCadence" aria-label="케이던스 추이"></canvas>
+        </div>
+        <div class="panel">
+          <div class="panel__head"><h2>비대칭 추이</h2><span class="panel__meta">%</span></div>
+          <canvas id="trendAsym" aria-label="비대칭 추이"></canvas>
+        </div>
+      </div>
+
+      <div class="section-head">
+        <h2>전체 세션</h2>
+        <span class="section-meta" id="sessionCount">0</span>
+      </div>
+      <div class="session-list" id="sessionList"></div>
+    </section>
+
+    <!-- ============ VALIDATION ============ -->
+    <section class="screen" id="screen-validation" aria-label="검증">
+      <div class="page-head">
+        <div><p class="eyebrow">임상 검증</p><h1>정확도</h1></div>
+        <span class="pill pill--quiet" id="valCount">0 sessions</span>
+      </div>
+
+      <div class="panel panel--hero">
+        <div class="val-hero">
+          <div>
+            <p class="label">관찰자 계수 대비</p>
+            <div class="val-big"><span id="valMape">—</span><small>% MAPE</small></div>
+            <p class="hint" id="valSummary">관찰자 계수가 입력된 측정이 없습니다. 결과 화면에서 계수를 입력하면 자동으로 집계됩니다.</p>
+          </div>
+          <div class="val-kpis" id="valKpis"></div>
+        </div>
+      </div>
+
+      <div class="history-grid">
+        <div class="panel">
+          <div class="panel__head"><h2>Bland–Altman</h2><span class="panel__meta">기기 − 관찰자</span></div>
+          <canvas id="blandAltman" aria-label="Bland-Altman 일치도 그래프"></canvas>
+          <p class="hint">점선은 편향 ±1.96 SD(일치 한계)입니다. 점이 0선 주위에 모일수록 일치도가 높습니다.</p>
+        </div>
+        <div class="panel">
+          <div class="panel__head"><h2>개인 보정</h2><span class="panel__meta">선택</span></div>
+          <p class="body-text">환자마다 신호 크기가 다릅니다. 관찰자 계수와 오차가 큰 경우, 보정 측정으로 검출 임계값을 환자에 맞게 조정할 수 있습니다.</p>
+          <div class="calib-box">
+            <div class="calib-step"><span>1</span><p>관찰자가 세는 동안 30초 이상 걷습니다.</p></div>
+            <div class="calib-step"><span>2</span><p>앱이 같은 기록에서 최적 임계값을 찾습니다.</p></div>
+            <div class="calib-step"><span>3</span><p>보정값을 저장하면 다음 측정부터 적용됩니다.</p></div>
+          </div>
+          <button class="btn btn--primary" id="calibBtn">보정 측정 시작</button>
+          <div class="calib-status-row">
+            <p class="hint" id="calibStatus">현재: 기본 설정 (표준)</p>
+            <button class="text-btn" id="calibReset" hidden>보정 초기화</button>
+          </div>
+        </div>
+      </div>
+
+      <div class="panel panel--wide">
+        <div class="panel__head"><h2>검출 방식</h2><span class="panel__meta">v1.0</span></div>
+        <div class="algo-grid">
+          <div class="algo-item"><span>01</span><h3>중력 방향 투영</h3><p>몸통 흔들림(수평 성분)을 제거하고 수직 충격만 남깁니다.</p></div>
+          <div class="algo-item"><span>02</span><h3>0.4–7 Hz 대역 통과</h3><p>느린 보행의 기본 주파수를 보존하면서 끌기 잡음을 줄입니다.</p></div>
+          <div class="algo-item"><span>03</span><h3>형태 기반 점수</h3><p>피크, 상승, 하중 골, 골반 회전의 네 특징을 결합해 발뒤꿈치 접지를 판별합니다.</p></div>
+          <div class="algo-item"><span>04</span><h3>주기 기반 보정</h3><p>두 배로 벌어진 간격에서 누락된 약측 하지를 복구합니다.</p></div>
+        </div>
+        <div class="callout">
+          <svg class="ico"><use href="#i-info"/></svg>
+          <p>합성 보행 벤치마크 5개 유형 · 25회에서 평균 절대 백분율 오차 <strong>2.6%</strong>를 확인했습니다. 다만 이는 합성 신호 결과이며, 실제 환자 대상 임상 타당도 검증을 대체하지 않습니다.</p>
+        </div>
+        <button class="text-btn" id="runBenchmark">브라우저에서 알고리즘 벤치마크 실행 <svg class="ico ico--sm"><use href="#i-arrow"/></svg></button>
+        <div class="compare-result" id="benchResult" hidden></div>
+      </div>
+
+      <div class="panel panel--wide">
+        <div class="panel__head"><h2>측정 불확실성</h2></div>
+        <ul class="limits-list">
+          <li>지팡이·워커의 충격은 실제 발 접지와 유사하게 보일 수 있습니다. 품질 점수가 낮으면 관찰자 계수로 확인하세요.</li>
+          <li>스마트폰을 손에 들거나 몸에 밀착하지 않으면 정확도가 떨어집니다. 허리 벨트를 권장합니다.</li>
+          <li>트레드밀, 계단, 정지-출발이 반복되는 보행은 검증 범위 밖입니다.</li>
+          <li>한 세션 안에서 착용 위치를 바꾸지 마세요. 신호 기준선이 달라집니다.</li>
+        </ul>
+      </div>
+    </section>
+
+    <!-- ============ SETTINGS ============ -->
+    <section class="screen" id="screen-settings" aria-label="설정">
+      <div class="page-head">
+        <div><p class="eyebrow">환경 설정</p><h1>설정</h1></div>
+      </div>
+
+      <div class="settings-grid">
+        <div class="panel">
+          <div class="panel__head"><h2>환자 정보</h2></div>
+          <div class="field-grid">
+            <label class="field"><span>이름 또는 ID</span><input id="setName" type="text" placeholder="예: 김○○ / PT-014" maxlength="40" /></label>
+            <label class="field"><span>마비측</span>
+              <select id="setSide">
+                <option value="none">미상</option>
+                <option value="left">좌측</option>
+                <option value="right">우측</option>
+                <option value="bilateral">양측</option>
+              </select>
+            </label>
+            <label class="field"><span>보조기구</span>
+              <select id="setAid">
+                <option value="none">없음</option>
+                <option value="cane">지팡이</option>
+                <option value="walker">워커</option>
+                <option value="orthosis">보조기(AFO 등)</option>
+              </select>
+            </label>
+            <label class="field"><span>키 (선택)</span><input id="setHeight" type="number" inputmode="numeric" min="100" max="220" placeholder="cm" /></label>
+          </div>
+          <button class="btn btn--primary btn--sm" id="saveProfile">환자 정보 저장</button>
+        </div>
+
+        <div class="panel">
+          <div class="panel__head"><h2>검출 감도</h2><span class="panel__meta" id="sensitivityMeta">표준</span></div>
+          <div class="segmented segmented--stack" id="sensitivityGroup">
+            <button class="seg" data-sens="high"><span>민감</span><small>약한 발 접지도 검출 · 오검출 증가</small></button>
+            <button class="seg is-active" data-sens="standard"><span>표준</span><small>대부분의 환자에 권장</small></button>
+            <button class="seg" data-sens="conservative"><span>보수적</span><small>확실한 접지만 계수 · 누락 증가</small></button>
+          </div>
+          <p class="hint">보정을 저장하면 이 설정보다 우선 적용됩니다.</p>
+        </div>
+
+        <div class="panel">
+          <div class="panel__head"><h2>표시</h2></div>
+          <div class="setting-row"><span>큰 글씨</span><label class="switch"><input type="checkbox" id="setLargeText" aria-label="큰 글씨" /><span class="switch__track"><span class="switch__thumb"></span></span></label></div>
+          <div class="setting-row"><span>고대비 테마</span><label class="switch"><input type="checkbox" id="setContrast" aria-label="고대비 테마" /><span class="switch__track"><span class="switch__thumb"></span></span></label></div>
+          <div class="setting-row"><span>애니메이션 줄이기</span><label class="switch"><input type="checkbox" id="setMotion" aria-label="애니메이션 줄이기" /><span class="switch__track"><span class="switch__thumb"></span></span></label></div>
+          <div class="setting-row"><span>화면 켜짐 유지</span><label class="switch"><input type="checkbox" id="setWake" aria-label="화면 켜짐 유지" checked /><span class="switch__track"><span class="switch__thumb"></span></span></label></div>
+        </div>
+
+        <div class="panel">
+          <div class="panel__head"><h2>센서 점검</h2><span class="panel__meta" id="diagState">대기</span></div>
+          <div class="diag">
+            <div class="diag__row"><span>가속도계</span><strong id="diagAccel">—</strong></div>
+            <div class="diag__row"><span>자이로스코프</span><strong id="diagGyro">—</strong></div>
+            <div class="diag__row"><span>샘플레이트</span><strong id="diagRate">—</strong></div>
+            <div class="diag__row"><span>중력 크기</span><strong id="diagGravity">—</strong></div>
+          </div>
+          <div class="diag-mag"><span id="diagBar" style="width:0%"></span></div>
+          <button class="btn btn--ghost btn--sm" id="diagBtn">10초 점검 시작</button>
+          <p class="hint">기기별 센서 단위를 확인합니다. 중력 크기가 9.8 m/s²에서 크게 벗어나면 측정을 신뢰할 수 없습니다.</p>
+        </div>
+
+        <div class="panel">
+          <div class="panel__head"><h2>데이터</h2></div>
+          <p class="body-text">모든 기록은 이 기기에만 저장됩니다. 서버 전송은 없습니다.</p>
+          <div class="data-actions">
+            <button class="btn btn--ghost btn--sm" id="exportBtn2"><svg class="ico ico--sm"><use href="#i-export"/></svg> 전체 CSV 내보내기</button>
+            <button class="btn btn--ghost btn--sm" id="demoBtn">데모 세션 8개 생성</button>
+            <button class="btn btn--danger btn--sm" id="clearBtn">모든 기록 삭제</button>
+          </div>
+        </div>
+
+        <div class="panel">
+          <div class="panel__head"><h2>정보</h2></div>
+          <div class="about">
+            <p><strong>StrideCare v1.0</strong></p>
+            <p>뇌졸중 환자의 느린 보행, 편마비 비대칭, 발 끌기, 보조기구 충격을 고려한 스마트폰 보행 계수기입니다.</p>
+            <p class="about__warn">이 앱은 의료기기가 아니며 진단·치료를 목적으로 하지 않습니다. 연구, 재활 모니터링, 선별 목적으로만 사용하고, 임상 판단은 전문가가 수행해야 합니다.</p>
+            <p class="about__meta">개인정보: 모든 신호와 기록은 브라우저 로컬 저장소에만 보관됩니다. 외부로 전송되지 않습니다.</p>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <footer class="foot">StrideCare · 뇌졸중 보행 정밀 계수 · 의료기기 아님</footer>
+  </main>
+
+  <nav class="tabbar" aria-label="주요 메뉴">
+    <button class="tab is-active" data-nav="measure"><svg class="ico"><use href="#i-step"/></svg><span>측정</span></button>
+    <button class="tab" data-nav="history"><svg class="ico"><use href="#i-chart"/></svg><span>기록</span></button>
+    <button class="tab" data-nav="validation"><svg class="ico"><use href="#i-check"/></svg><span>검증</span></button>
+    <button class="tab" data-nav="settings"><svg class="ico"><use href="#i-sliders"/></svg><span>설정</span></button>
+  </nav>
+</div>
+
+<!-- ============ MODALS ============ -->
+<div class="modal" id="modalStart" hidden>
+  <div class="modal__scrim" data-close></div>
+  <div class="modal__panel" role="dialog" aria-modal="true" aria-labelledby="modalStartTitle">
+    <button class="modal__close" data-close aria-label="닫기"><svg class="ico"><use href="#i-close"/></svg></button>
+    <p class="eyebrow">측정 준비</p>
+    <h2 id="modalStartTitle">센서 연결</h2>
+    <p class="body-text" id="modalStartBody">스마트폰의 동작 센서를 사용합니다. 버튼을 누르면 권한을 요청합니다.</p>
+    <div class="modal__actions">
+      <button class="btn btn--ghost" id="useDemo">데모로 체험</button>
+      <button class="btn btn--primary" id="allowSensor">센서 사용</button>
+    </div>
+    <p class="hint" id="modalStartHint">iPhone은 Safari에서, Android는 Chrome에서 가장 안정적으로 동작합니다.</p>
+  </div>
+</div>
+
+<div class="modal" id="modalConfirm" hidden>
+  <div class="modal__scrim" data-close></div>
+  <div class="modal__panel modal__panel--sm" role="dialog" aria-modal="true" aria-labelledby="confirmTitle">
+    <h2 id="confirmTitle">측정을 종료할까요?</h2>
+    <p class="body-text" id="confirmBody">지금까지의 기록으로 결과를 계산합니다.</p>
+    <div class="modal__actions">
+      <button class="btn btn--ghost" data-close>계속 측정</button>
+      <button class="btn btn--primary" id="confirmStop">종료</button>
+    </div>
+  </div>
+</div>
+
+<div class="modal" id="modalCalib" hidden>
+  <div class="modal__scrim" data-close></div>
+  <div class="modal__panel" role="dialog" aria-modal="true" aria-labelledby="calibTitle">
+    <button class="modal__close" data-close aria-label="닫기"><svg class="ico"><use href="#i-close"/></svg></button>
+    <p class="eyebrow">개인 보정</p>
+    <h2 id="calibTitle">보정 측정</h2>
+    <p class="body-text" id="calibIntro">환자가 걷는 동안 관찰자가 직접 걸음 수를 세어 입력합니다. 앱이 같은 기록을 다시 분석해 가장 잘 맞는 임계값을 찾습니다.</p>
+    <div class="compare-result" id="calibRec" hidden></div>
+    <div class="calib-fields">
+      <label class="field"><span id="calibCountLabel">관찰자 계수</span><input id="calibCount" type="number" inputmode="numeric" min="5" max="9999" placeholder="녹음 후 입력" /></label>
+      <label class="field"><span id="calibDurationLabel">측정 시간 (초)</span><input id="calibDuration" type="number" inputmode="numeric" min="20" max="300" value="60" /></label>
+    </div>
+    <div class="modal__actions">
+      <button class="text-btn" id="calibRedo" hidden style="margin-right:auto">다시 녹음</button>
+      <button class="btn btn--ghost" data-close>취소</button>
+      <button class="btn btn--primary" id="calibRun">녹음 시작</button>
+    </div>
+    <p class="hint" id="calibHint">30초 이상, 가능하면 60초 이상 보행을 권장합니다.</p>
+  </div>
+</div>
+
+<div class="toast" id="toast" role="status" aria-live="polite"></div>
+
+<script type="module" src="js/app.js"></script>
+</body>
+</html>

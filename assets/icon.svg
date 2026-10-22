@@ -1,0 +1,29 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="512" height="512" role="img" aria-label="StrideCare">
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#101d2a"/>
+      <stop offset="1" stop-color="#05090f"/>
+    </linearGradient>
+    <linearGradient id="mint" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#66f5da"/>
+      <stop offset="1" stop-color="#23c9ac"/>
+    </linearGradient>
+    <radialGradient id="glow" cx="50%" cy="44%" r="55%">
+      <stop offset="0" stop-color="#35e3c2" stop-opacity=".22"/>
+      <stop offset="1" stop-color="#35e3c2" stop-opacity="0"/>
+    </radialGradient>
+  </defs>
+  <rect width="512" height="512" rx="112" fill="url(#bg)"/>
+  <rect x="1.5" y="1.5" width="509" height="509" rx="110.5" fill="none" stroke="#35e3c2" stroke-opacity=".22" stroke-width="3"/>
+  <circle cx="256" cy="238" r="168" fill="url(#glow)"/>
+  <g fill="none" stroke="url(#mint)" stroke-width="24" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M98 300c48 0 60-124 110-124s62 124 112 124 60-124 110-124"/>
+  </g>
+  <circle cx="436" cy="176" r="13" fill="#66f5da"/>
+  <g fill="none" stroke="#7fa6ff" stroke-opacity=".38" stroke-width="3" stroke-linecap="round">
+    <path d="M136 366h96"/>
+    <path d="M292 366h84"/>
+  </g>
+  <circle cx="136" cy="366" r="7" fill="#35e3c2" fill-opacity=".9"/>
+  <circle cx="376" cy="366" r="7" fill="#7fa6ff" fill-opacity=".9"/>
+</svg>

@@ -1,0 +1,11 @@
+{
+  "name": "stridecare",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "description": "뇌졸중 환자 보행 계수 — 스마트폰 센서 기반 정밀 스텝 측정",
+  "scripts": {
+    "verify": "node tools/verify.mjs",
+    "serve": "python3 -m http.server 4173"
+  }
+}
