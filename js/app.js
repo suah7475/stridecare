@@ -35,6 +35,7 @@ const ui = {
   profileStrip: $('profileStrip'), editProfile: $('editProfile'),
   protocolGroup: $('protocolGroup'), protocolHint: $('protocolHint'),
   startBtn: $('startBtn'), startMeta: $('startMeta'),
+  measureCalibBtn: $('measureCalibBtn'), measureCalibBadge: $('measureCalibBadge'), measureCalibStatus: $('measureCalibStatus'),
   sensorChip: $('sensorChip'), quickSettings: $('quickSettings'),
   railPatient: $('railPatient'), recentBlock: $('recentBlock'), recentCard: $('recentCard'),
   // live
@@ -107,6 +108,7 @@ const state = {
   currentScreen: 'measure',
   calibRecording: null,
   calibBusy: false,
+  calibOrigin: 'validation',
   benchmarkBusy: false,
   diagBusy: false,
   navBusy: false,
@@ -651,7 +653,7 @@ function handleEnd(result) {
     };
     state.current = null;
     sensorReadyChip();
-    showScreen('validation');
+    showScreen(state.calibOrigin === 'measure' ? 'measure' : 'validation');
     openCalibModal();
     toast('보정 녹음이 끝났습니다. 관찰자 계수를 입력하세요.');
     return;
@@ -1051,6 +1053,7 @@ function openSession(id) {
 
 function refreshAfterDataChange() {
   renderRecent();
+  updateCalibStatus();
   if (state.currentScreen === 'history') renderHistory();
   if (state.currentScreen === 'validation') renderValidation();
 }
@@ -1228,20 +1231,28 @@ function sensitivityLabel() {
 
 function updateCalibStatus() {
   const cal = getCalibration();
+  const demoOnly = cal?.source === 'demo';
   if (cal?.params) {
-    const demoOnly = cal.source === 'demo';
     ui.calibStatus.textContent = demoOnly
       ? `데모 보정 저장됨 · 실제 센서 측정에는 미적용 (검출 ${cal.detected ?? '—'} / 관찰 ${cal.count ?? '—'}보)`
       : `개인 보정 적용 중 · 검출 ${cal.detected ?? '—'} / 관찰 ${cal.count ?? '—'}보 (오차 ${fmtSigned(cal.errorPct || 0, 1)}%)`;
     ui.calibStatus.style.color = 'var(--amber)';
     ui.calibReset.hidden = false;
     ui.calibBtn.textContent = '보정 다시 측정';
+    ui.measureCalibStatus.textContent = demoOnly
+      ? '실제 센서 측정에는 미적용'
+      : `오차 ${fmtSigned(cal.errorPct || 0, 1)}% · 다음 측정부터 적용`;
+    ui.measureCalibBadge.textContent = demoOnly ? '데모' : '적용 중';
   } else {
     ui.calibStatus.textContent = `현재: 기본 설정 (${sensitivityLabel()})`;
     ui.calibStatus.style.color = '';
     ui.calibReset.hidden = true;
     ui.calibBtn.textContent = '보정 측정 시작';
+    ui.measureCalibStatus.textContent = `기본 설정(${sensitivityLabel()}) · 30초 이상 측정`;
+    ui.measureCalibBadge.textContent = '권장';
   }
+  ui.measureCalibBtn.classList.toggle('is-applied', !!cal?.params && !demoOnly);
+  ui.measureCalibBtn.classList.toggle('is-demo', demoOnly);
   const meta = SENSITIVITY_PRESETS[getSettings().sensitivity]?.label || '표준';
   ui.sensitivityMeta.textContent = cal?.params
     ? (cal.source === 'demo' ? `${meta} · 데모 보정(미적용)` : `${meta} · 개인 보정 우선`)
@@ -1323,7 +1334,8 @@ function renderValidation() {
 /* Personal calibration                                                */
 /* ------------------------------------------------------------------ */
 
-function openCalibModal() {
+function openCalibModal(origin = state.calibOrigin || 'validation') {
+  state.calibOrigin = origin;
   const rec = state.calibRecording;
   if (rec) {
     const demo = rec.mode === 'demo';
@@ -1748,7 +1760,8 @@ function bindEvents() {
   });
   ui.exportBtn.addEventListener('click', exportData);
 
-  ui.calibBtn.addEventListener('click', openCalibModal);
+  ui.calibBtn.addEventListener('click', () => openCalibModal('validation'));
+  ui.measureCalibBtn.addEventListener('click', () => openCalibModal('measure'));
   ui.calibRun.addEventListener('click', handleCalibRun);
   ui.calibRedo.addEventListener('click', () => {
     state.calibRecording = null;

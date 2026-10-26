@@ -61,8 +61,8 @@ export class Biquad {
 
 /**
  * Tracks the gravity direction from raw accelerometer samples and resolves
- * the body-vertical / horizontal components. A waist- or pocket-mounted
- * phone rotates slowly while walking; a 1.2 s time constant tracks that
+ * the body-vertical / horizontal components. A belt-mounted phone rotates
+ * slowly while walking; a 1.2 s time constant tracks that
  * rotation without absorbing the 1–3 Hz gait signal.
  */
 export class VerticalResolver {

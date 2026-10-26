@@ -223,10 +223,10 @@ export class SessionController {
     if (!this.running || this.paused) return;
     const a = e.accelerationIncludingGravity;
     if (!a || (a.x == null && a.y == null && a.z == null)) {
-      // Chrome can deliver one warm-up event without acceleration data. Wait a
-      // moment before alarming, otherwise the chip stays on "센서 주의" for the
-      // rest of a perfectly healthy session.
-      if (!this.validMotionEvents && !this.warnedNullMotion && this.sessionNow() >= 2) {
+      // Chrome can deliver one warm-up event without acceleration data. Wait
+      // two seconds into the session before alarming, otherwise the chip stays
+      // on "센서 주의" for the rest of a perfectly healthy session.
+      if (!this.validMotionEvents && !this.warnedNullMotion && this.sessionNow() - this.startAt >= 2) {
         this.warnedNullMotion = true;
         this._status('가속도 센서 값을 받을 수 없습니다', 'warn');
       }

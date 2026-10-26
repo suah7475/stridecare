@@ -138,7 +138,7 @@ export function simulateGait({
   const n = Math.round(duration * sampleRate);
   const dt = 1 / sampleRate;
 
-  // Device orientation: phone sits slightly tilted in the front pocket.
+  // Device orientation: phone sits slightly tilted on the waist belt.
   const up = normalize([0.16, 0.955, 0.25]);
   let latAxis = normalize(cross([0, 1, 0], up));
   if (latAxis[0] < 0) latAxis = latAxis.map((x) => -x);
