@@ -37,6 +37,9 @@
     <symbol id="i-info" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 11v5M12 7.8v.1"/></symbol>
     <symbol id="i-sound" viewBox="0 0 24 24"><path d="M5 10v4h3l4 3V7L8 10H5Z"/><path d="M15.5 9a4 4 0 0 1 0 6M18 6.5a7.5 7.5 0 0 1 0 11"/></symbol>
     <symbol id="i-vibe" viewBox="0 0 24 24"><rect x="8" y="6" width="8" height="12" rx="1.5"/><path d="M4 9v6M20 9v6M2 11v2M22 11v2"/></symbol>
+    <symbol id="i-remote" viewBox="0 0 24 24"><rect x="2.5" y="5" width="8" height="14" rx="2"/><path d="M5 7.5h3M5 16.5h3"/><rect x="14" y="8" width="7" height="11" rx="1.8"/><path d="M16.5 10h2M16.5 16.5h2"/></symbol>
+    <symbol id="i-qr" viewBox="0 0 24 24"><rect x="3.5" y="3.5" width="6" height="6" rx="1"/><rect x="14.5" y="3.5" width="6" height="6" rx="1"/><rect x="3.5" y="14.5" width="6" height="6" rx="1"/><path d="M14.5 14.5h2.5v2.5h-2.5zM20.5 14.5v5.5M14.5 20.5h3.5"/></symbol>
+    <symbol id="i-camera" viewBox="0 0 24 24"><path d="M3 8.5A1.5 1.5 0 0 1 4.5 7H7l1.4-2h7.2L17 7h2.5A1.5 1.5 0 0 1 21 8.5v9A1.5 1.5 0 0 1 19.5 19h-15A1.5 1.5 0 0 1 3 17.5v-9Z"/><circle cx="12" cy="13" r="3.4"/></symbol>
   </defs>
 </svg>
 
@@ -120,14 +123,25 @@
             <p class="start-meta" id="startMeta">탭하여 센서 연결</p>
           </div>
 
-          <button class="calib-entry" id="measureCalibBtn" type="button">
-            <span class="calib-entry__icon" aria-hidden="true"><svg class="ico"><use href="#i-target"/></svg></span>
-            <span class="calib-entry__body">
-              <span class="calib-entry__title">개인 보정 <span class="calib-entry__badge" id="measureCalibBadge">권장</span></span>
-              <span class="calib-entry__status" id="measureCalibStatus">관찰자와 함께 30초 이상 측정</span>
-            </span>
-            <svg class="ico calib-entry__arrow" aria-hidden="true"><use href="#i-arrow"/></svg>
-          </button>
+          <div class="start-extras">
+            <button class="calib-entry" id="measureCalibBtn" type="button">
+              <span class="calib-entry__icon" aria-hidden="true"><svg class="ico"><use href="#i-target"/></svg></span>
+              <span class="calib-entry__body">
+                <span class="calib-entry__title">개인 보정 <span class="calib-entry__badge" id="measureCalibBadge">권장</span></span>
+                <span class="calib-entry__status" id="measureCalibStatus">관찰자와 함께 30초 이상 측정</span>
+              </span>
+              <svg class="ico calib-entry__arrow" aria-hidden="true"><use href="#i-arrow"/></svg>
+            </button>
+
+            <button class="remote-entry" id="remoteEntryBtn" type="button">
+              <span class="remote-entry__icon" aria-hidden="true"><svg class="ico"><use href="#i-remote"/></svg></span>
+              <span class="remote-entry__body">
+                <span class="remote-entry__title">관찰자 리모컨 <span class="remote-entry__badge" id="remoteEntryBadge">2대</span></span>
+                <span class="remote-entry__status" id="remoteEntryStatus">다른 폰에서 계수·일시정지·종료</span>
+              </span>
+              <svg class="ico remote-entry__arrow" aria-hidden="true"><use href="#i-arrow"/></svg>
+            </button>
+          </div>
 
           <div class="placement">
             <p class="label">착용 위치</p>
@@ -200,9 +214,9 @@
             <div class="balance-legend"><span id="balanceLeft">좌 0</span><span id="balanceRight">우 0</span></div>
           </div>
 
-          <div class="manual-card">
+          <div class="manual-card" id="manualCard">
             <div class="manual-head">
-              <span>관찰자 계수</span>
+              <span>관찰자 계수 <em class="manual-tag" id="manualRemoteTag" hidden>원격</em></span>
               <label class="switch switch--sm">
                 <input type="checkbox" id="manualToggle" aria-label="관찰자 계수 사용" />
                 <span class="switch__track"><span class="switch__thumb"></span></span>
@@ -212,7 +226,7 @@
               <span id="manualCount">0</span>
               <small>탭하여 +1</small>
             </button>
-            <p class="hint hint--tight">검증용입니다. 환자와 같은 속도로 직접 세어 보세요.</p>
+            <p class="hint hint--tight" id="manualHint">검증용입니다. 환자와 같은 속도로 직접 세어 보세요.</p>
           </div>
 
           <div class="feedback-card">
@@ -234,6 +248,43 @@
       </div>
 
       <p class="live-note" id="liveNote">화면이 꺼지지 않도록 유지됩니다.</p>
+    </section>
+
+    <!-- ============ OBSERVER (second phone) ============ -->
+    <section class="screen" id="screen-observer" aria-label="관찰자 모드">
+      <div class="obs-top">
+        <div class="obs-brand">
+          <span class="obs-dot" aria-hidden="true"></span>
+          <span>관찰자 모드</span>
+          <span class="obs-link" id="obsLink">연결됨</span>
+        </div>
+        <button class="icon-btn icon-btn--ghost" id="obsExit" aria-label="원격 연결 종료 및 나가기"><svg class="ico"><use href="#i-close"/></svg></button>
+      </div>
+
+      <div class="obs-main">
+        <div class="obs-clock">
+          <span class="obs-timer" id="obsTimer">00:00</span>
+          <span class="obs-phase" id="obsPhase">측정 대기 중</span>
+        </div>
+
+        <button class="obs-tap" id="obsPlus" type="button" disabled>
+          <span class="obs-tap__num" id="obsCount">0</span>
+          <span class="obs-tap__unit">보</span>
+          <span class="obs-tap__hint">탭하여 +1</span>
+        </button>
+
+        <div class="obs-adjust">
+          <button class="obs-mini" id="obsMinus" type="button" disabled>−1</button>
+          <button class="obs-mini" id="obsReset" type="button" disabled>초기화</button>
+        </div>
+
+        <div class="obs-controls">
+          <button class="btn btn--ghost" id="obsPause" type="button" disabled><svg class="ico"><use href="#i-pause"/></svg><span>일시정지</span></button>
+          <button class="btn btn--stop" id="obsStop" type="button" disabled><svg class="ico"><use href="#i-stop"/></svg><span>측정 종료</span></button>
+        </div>
+
+        <p class="obs-note">앱의 자동 계수는 표시되지 않습니다. 환자의 발을 보고 직접 세어 주세요.</p>
+      </div>
     </section>
 
     <!-- ============ RESULT ============ -->
@@ -553,8 +604,114 @@
   </div>
 </div>
 
+<div class="modal" id="modalRemote" hidden>
+  <div class="modal__scrim" data-close-remote></div>
+  <div class="modal__panel modal__panel--remote" role="dialog" aria-modal="true" aria-labelledby="remoteTitle">
+    <button class="modal__close" data-close-remote aria-label="닫기"><svg class="ico"><use href="#i-close"/></svg></button>
+    <p class="eyebrow">관찰자 리모컨</p>
+    <h2 id="remoteTitle">두 대의 폰 연결</h2>
+
+    <div class="remote-step" id="remoteStepChoose">
+      <div class="role-grid">
+        <button class="role-card" id="roleSensor" type="button">
+          <span class="role-card__icon" aria-hidden="true"><svg class="ico"><use href="#i-belt"/></svg></span>
+          <strong>이 폰으로 측정</strong>
+          <small>허리에 착용하고 걸음 수를 기록합니다</small>
+        </button>
+        <button class="role-card" id="roleObserver" type="button">
+          <span class="role-card__icon" aria-hidden="true"><svg class="ico"><use href="#i-remote"/></svg></span>
+          <strong>관찰자로 참여</strong>
+          <small>걸음 수를 세고 측정을 제어합니다</small>
+        </button>
+      </div>
+      <p class="hint">두 폰을 같은 Wi-Fi에 연결하세요. 연결 코드는 두 기기 사이에서만 교환되며 측정값은 외부로 전송되지 않습니다.</p>
+    </div>
+
+    <div class="remote-step" id="remoteStepSensorOffer" hidden>
+      <p class="remote-lead">관찰자 폰으로 아래 QR을 스캔하거나 코드를 복사해 전달하세요.</p>
+      <div class="qr-box"><div class="qr" id="remoteQrOffer"></div></div>
+      <textarea class="code-box" id="remoteOfferCode" rows="4" readonly spellcheck="false" aria-label="측정 폰 연결 코드"></textarea>
+      <div class="remote-inline">
+        <button class="btn btn--ghost btn--sm" id="remoteCopyOffer" type="button">코드 복사</button>
+        <span class="remote-inline__hint" id="remoteCopyHint"></span>
+      </div>
+      <div class="modal__actions">
+        <button class="btn btn--ghost" data-close-remote type="button">닫기</button>
+        <button class="btn btn--primary" id="remoteToAnswer" type="button">관찰자 코드 입력</button>
+      </div>
+    </div>
+
+    <div class="remote-step" id="remoteStepSensorAnswer" hidden>
+      <p class="remote-lead">관찰자 폰에 표시된 QR을 스캔하거나 코드를 붙여넣으세요.</p>
+      <textarea class="code-box" id="remoteAnswerInput" rows="3" spellcheck="false" placeholder="관찰자 폰에 표시된 코드"></textarea>
+      <div class="remote-inline">
+        <button class="btn btn--ghost btn--sm" id="remoteScanAnswer" type="button"><svg class="ico ico--sm"><use href="#i-camera"/></svg> QR 스캔</button>
+        <span class="remote-inline__hint" id="remoteAnswerHint"></span>
+      </div>
+      <div class="modal__actions">
+        <button class="btn btn--ghost" id="remoteBackOffer" type="button">뒤로</button>
+        <button class="btn btn--primary" id="remoteConnect" type="button">연결</button>
+      </div>
+    </div>
+
+    <div class="remote-step" id="remoteStepObserverScan" hidden>
+      <p class="remote-lead">측정 폰에 표시된 QR을 스캔하거나 코드를 붙여넣으세요.</p>
+      <textarea class="code-box" id="remoteOfferInput" rows="3" spellcheck="false" placeholder="측정 폰에 표시된 코드"></textarea>
+      <div class="remote-inline">
+        <button class="btn btn--ghost btn--sm" id="remoteScanOffer" type="button"><svg class="ico ico--sm"><use href="#i-camera"/></svg> QR 스캔</button>
+        <span class="remote-inline__hint" id="remoteOfferHint"></span>
+      </div>
+      <div class="modal__actions">
+        <button class="btn btn--ghost" data-close-remote type="button">취소</button>
+        <button class="btn btn--primary" id="remoteMakeAnswer" type="button">다음</button>
+      </div>
+    </div>
+
+    <div class="remote-step" id="remoteStepObserverAnswer" hidden>
+      <p class="remote-lead">이제 측정 폰에서 아래 QR을 스캔하거나 코드를 입력하세요.</p>
+      <div class="qr-box"><div class="qr" id="remoteQrAnswer"></div></div>
+      <textarea class="code-box" id="remoteAnswerCode" rows="4" readonly spellcheck="false" aria-label="관찰자 폰 연결 코드"></textarea>
+      <div class="remote-inline">
+        <button class="btn btn--ghost btn--sm" id="remoteCopyAnswer" type="button">코드 복사</button>
+        <span class="remote-inline__hint" id="remoteAnswerCopyHint"></span>
+      </div>
+      <div class="remote-wait"><span class="spinner" aria-hidden="true"></span><span id="remoteWaitText">측정 폰의 연결을 기다리는 중…</span></div>
+      <div class="modal__actions">
+        <button class="btn btn--ghost" id="remoteBackScan" type="button">뒤로</button>
+        <button class="btn btn--ghost" data-close-remote type="button">닫기</button>
+      </div>
+    </div>
+
+    <div class="remote-step" id="remoteStepConnected" hidden>
+      <div class="remote-ok">
+        <span class="remote-ok__icon" aria-hidden="true"><svg class="ico"><use href="#i-check"/></svg></span>
+        <div class="remote-ok__body">
+          <strong>관찰자 폰이 연결되었습니다</strong>
+          <small id="remoteOkMeta">관찰자 폰에서 계수와 일시정지·종료를 조작할 수 있습니다.</small>
+        </div>
+      </div>
+      <p class="hint">측정을 시작하면 관찰자 폰에 계수 화면이 나타납니다. 이 폰의 자동 계수는 관찰자에게 표시되지 않습니다.</p>
+      <div class="modal__actions">
+        <button class="btn btn--ghost" id="remoteDisconnect" type="button">연결 해제</button>
+        <button class="btn btn--primary" data-close-remote type="button">확인</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="scanner" id="scanner" hidden>
+  <video id="scannerVideo" playsinline muted></video>
+  <div class="scanner__frame" aria-hidden="true"></div>
+  <div class="scanner__bar">
+    <p class="scanner__hint" id="scannerHint">QR 코드를 사각형 안에 맞추세요</p>
+    <button class="btn btn--ghost" id="scannerClose" type="button">닫기</button>
+  </div>
+  <canvas id="scannerCanvas" hidden></canvas>
+</div>
+
 <div class="toast" id="toast" role="status" aria-live="polite"></div>
 
+<script src="js/vendor/qrcode.min.js" defer></script>
 <script type="module" src="js/app.js"></script>
 </body>
 </html>

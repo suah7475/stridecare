@@ -18,6 +18,8 @@ import { drawLiveWave, drawTachogram, drawTrend, drawBlandAltman } from './chart
 import { calibrate } from './calibrate.js';
 import { runBenchmark } from './benchmark.js';
 import { mape, mae, blandAltman, icc21, ccc, withinLoa } from './core/stats.js';
+import { RemoteLink, remoteSupported } from './remote.js';
+import { renderQr, startScanner, scannerSupported } from './qr.js';
 
 const $ = (id) => document.getElementById(id);
 const $$ = (sel, root = document) => Array.from(root.querySelectorAll(sel));
@@ -48,6 +50,8 @@ const ui = {
   balancePct: $('balancePct'), balanceA: $('balanceA'), balanceB: $('balanceB'),
   balanceLeft: $('balanceLeft'), balanceRight: $('balanceRight'),
   manualToggle: $('manualToggle'), manualBtn: $('manualBtn'), manualCount: $('manualCount'),
+  manualCard: $('manualCard'), manualRemoteTag: $('manualRemoteTag'), manualHint: $('manualHint'),
+  remoteEntryBtn: $('remoteEntryBtn'), remoteEntryBadge: $('remoteEntryBadge'), remoteEntryStatus: $('remoteEntryStatus'),
   soundToggle: $('soundToggle'), vibeToggle: $('vibeToggle'),
   pauseBtn: $('pauseBtn'), stopBtn: $('stopBtn'), liveNote: $('liveNote'),
   wavePanel: document.querySelector('.wave-panel'),
@@ -94,6 +98,27 @@ const ui = {
   calibCount: $('calibCount'), calibCountLabel: $('calibCountLabel'),
   calibDuration: $('calibDuration'), calibDurationLabel: $('calibDurationLabel'),
   calibRun: $('calibRun'), calibHint: $('calibHint'), calibRedo: $('calibRedo'),
+  // observer remote
+  modalRemote: $('modalRemote'),
+  remoteStepChoose: $('remoteStepChoose'), remoteStepSensorOffer: $('remoteStepSensorOffer'),
+  remoteStepSensorAnswer: $('remoteStepSensorAnswer'), remoteStepObserverScan: $('remoteStepObserverScan'),
+  remoteStepObserverAnswer: $('remoteStepObserverAnswer'), remoteStepConnected: $('remoteStepConnected'),
+  roleSensor: $('roleSensor'), roleObserver: $('roleObserver'),
+  remoteQrOffer: $('remoteQrOffer'), remoteOfferCode: $('remoteOfferCode'),
+  remoteCopyOffer: $('remoteCopyOffer'), remoteCopyHint: $('remoteCopyHint'), remoteToAnswer: $('remoteToAnswer'),
+  remoteAnswerInput: $('remoteAnswerInput'), remoteScanAnswer: $('remoteScanAnswer'),
+  remoteAnswerHint: $('remoteAnswerHint'), remoteBackOffer: $('remoteBackOffer'), remoteConnect: $('remoteConnect'),
+  remoteOfferInput: $('remoteOfferInput'), remoteScanOffer: $('remoteScanOffer'),
+  remoteOfferHint: $('remoteOfferHint'), remoteMakeAnswer: $('remoteMakeAnswer'),
+  remoteQrAnswer: $('remoteQrAnswer'), remoteAnswerCode: $('remoteAnswerCode'),
+  remoteCopyAnswer: $('remoteCopyAnswer'), remoteAnswerCopyHint: $('remoteAnswerCopyHint'),
+  remoteWaitText: $('remoteWaitText'), remoteBackScan: $('remoteBackScan'),
+  remoteOkMeta: $('remoteOkMeta'), remoteDisconnect: $('remoteDisconnect'),
+  scanner: $('scanner'), scannerVideo: $('scannerVideo'), scannerCanvas: $('scannerCanvas'),
+  scannerHint: $('scannerHint'), scannerClose: $('scannerClose'),
+  obsLink: $('obsLink'), obsTimer: $('obsTimer'), obsPhase: $('obsPhase'), obsCount: $('obsCount'),
+  obsPlus: $('obsPlus'), obsMinus: $('obsMinus'), obsReset: $('obsReset'),
+  obsPause: $('obsPause'), obsStop: $('obsStop'), obsExit: $('obsExit'),
   toast: $('toast'),
 };
 
@@ -119,6 +144,20 @@ const state = {
   resizeTimer: null,
   lastBeep: 0,
   audioCtx: null,
+  obsWakeLock: null,
+  remote: {
+    role: null,
+    status: 'off',
+    step: 'choose',
+    link: null,
+    offer: '',
+    answer: '',
+    lastPush: 0,
+    scanner: null,
+    copyTimer: null,
+    pairTimer: null,
+    observer: { count: 0, phase: 'idle', elapsed: 0, sid: undefined, synced: false },
+  },
 };
 
 /* ------------------------------------------------------------------ */
@@ -180,13 +219,13 @@ function modalOpen(modal) {
   modal.hidden = false;
   document.body.style.overflow = 'hidden';
   requestAnimationFrame(() => {
-    const target = modal.querySelector('input:not([disabled]), select:not([disabled]), button:not([data-close])');
+    const target = modal.querySelector('input:not([disabled]), select:not([disabled]), button:not([data-close]):not([data-close-remote])');
     target?.focus({ preventScroll: true });
   });
 }
 
 function anyModalOpen() {
-  return !ui.modalStart.hidden || !ui.modalConfirm.hidden || !ui.modalCalib.hidden;
+  return !ui.modalStart.hidden || !ui.modalConfirm.hidden || !ui.modalCalib.hidden || !ui.modalRemote.hidden;
 }
 
 function modalClose(modal) {
@@ -312,6 +351,7 @@ function showScreen(name, opts = {}) {
   state.currentScreen = name;
   $$('.screen').forEach((s) => s.classList.toggle('is-active', s.id === `screen-${name}`));
   document.body.classList.toggle('is-live', name === 'live');
+  document.body.classList.toggle('is-observer', name === 'observer');
 
   const navName = opts.nav || (name === 'result'
     ? (state.current?.stored ? 'history' : 'measure')
@@ -434,6 +474,7 @@ function resetLiveUI(protocol, mode, calibration) {
     ? '관찰자는 앱의 걸음 수를 보지 말고 직접 세어 주세요. 녹음이 끝나면 계수를 입력합니다.'
     : '화면이 꺼지지 않도록 유지됩니다.';
   drawLiveWave(ui.liveWave, null, [], {});
+  syncManualCard();
 }
 
 function setPauseButton(paused) {
@@ -476,6 +517,7 @@ async function startSession(mode, opts = {}) {
   resetLiveUI(protocol, mode, isCalib);
   setSensorChip(mode === 'demo' ? '데모 재생 중' : (isCalib ? '보정 녹음 중' : '측정 중'), mode === 'demo' ? 'demo' : 'live');
   showScreen('live');
+  sendRemoteState(true);
 
   const controller = new SessionController({
     onTick: handleTick,
@@ -566,6 +608,8 @@ function handleTick(snap) {
     ui.liveNote.textContent = '가속도 이벤트가 없습니다. 권한과 센서를 확인하거나 데모로 전환하세요.';
     toast('센서 신호가 들어오지 않습니다. 권한을 확인해 주세요.', 'error');
   }
+
+  sendRemoteState();
 }
 
 function handleStep() {
@@ -600,6 +644,7 @@ function pauseSession(silent = false) {
     ? '보정 녹음이 일시정지되었습니다. 재개하면 같은 녹음에 이어서 기록합니다.'
     : '일시정지됨 — 재개하면 이어서 측정합니다.';
   if (!silent) toast('일시정지했습니다.');
+  sendRemoteState(true);
 }
 
 function resumeSession(silent = false) {
@@ -607,12 +652,13 @@ function resumeSession(silent = false) {
   state.live.paused = false;
   state.controller.resume();
   setPauseButton(false);
-  ui.manualBtn.disabled = !ui.manualToggle.checked;
+  ui.manualBtn.disabled = !ui.manualToggle.checked || isRemoteSensor();
   setSensorChip(state.live.mode === 'demo' ? '데모 재생 중' : '측정 중', state.live.mode === 'demo' ? 'demo' : 'live');
   ui.liveNote.textContent = state.live.calib
     ? '관찰자는 앱의 걸음 수를 보지 말고 직접 세어 주세요. 녹음이 끝나면 계수를 입력합니다.'
     : '화면이 꺼지지 않도록 유지됩니다.';
   if (!silent) toast('측정을 재개했습니다.');
+  sendRemoteState(true);
 }
 
 async function requestStop() {
@@ -637,10 +683,15 @@ async function requestStop() {
 
 function handleEnd(result) {
   const wasCalib = !!state.live?.calib;
+  if (state.live) {
+    state.live.finished = true;
+    state.live.durationSec = Number(result.durationSec) || 0;
+    state.live.paused = false;
+  }
   state.measuring = false;
   state.controller = null;
-  state.live.paused = false;
   document.body.style.overflow = '';
+  sendRemoteState(true);
 
   if (wasCalib) {
     state.calibRecording = {
@@ -649,6 +700,7 @@ function handleEnd(result) {
       steps: result.steps,
       truthSteps: result.demoTruthSteps,
       mode: result.mode,
+      remoteCount: state.live.manual || 0,
       createdAt: Date.now(),
     };
     state.current = null;
@@ -1349,7 +1401,7 @@ function openCalibModal(origin = state.calibOrigin || 'validation') {
     }</div>`;
     ui.calibCount.disabled = false;
     ui.calibCountLabel.textContent = demo ? '관찰자 계수 (데모 정답)' : '관찰자 계수';
-    ui.calibCount.value = demo ? String(rec.truthSteps || rec.steps) : '';
+    ui.calibCount.value = demo ? String(rec.truthSteps || rec.steps) : (rec.remoteCount ? String(rec.remoteCount) : '');
     ui.calibDuration.disabled = true;
     ui.calibDurationLabel.textContent = '녹음 시간';
     ui.calibDuration.value = String(Math.round(rec.durationSec));
@@ -1490,6 +1542,629 @@ async function resetCalibration() {
 }
 
 // MODULE_CONTINUE_5
+
+/* ------------------------------------------------------------------ */
+/* Observer remote                                                     */
+/* ------------------------------------------------------------------ */
+
+const REMOTE_PHASE_TEXT = {
+  idle: '측정 대기 중',
+  running: '측정 중',
+  paused: '일시정지됨',
+  ended: '측정 종료됨',
+};
+
+const REMOTE_STEPS = {
+  choose: 'remoteStepChoose',
+  'sensor-offer': 'remoteStepSensorOffer',
+  'sensor-answer': 'remoteStepSensorAnswer',
+  'observer-scan': 'remoteStepObserverScan',
+  'observer-answer': 'remoteStepObserverAnswer',
+  connected: 'remoteStepConnected',
+};
+
+function isRemoteSensor() {
+  return state.remote.role === 'sensor' && state.remote.status === 'connected';
+}
+
+function showRemoteStep(name) {
+  state.remote.step = name;
+  for (const [key, id] of Object.entries(REMOTE_STEPS)) {
+    const el = $(id);
+    if (el) el.hidden = key !== name;
+  }
+}
+
+function updateRemoteEntry() {
+  const r = state.remote;
+  ui.remoteEntryBtn.classList.toggle('is-waiting', r.status === 'waiting' || r.status === 'preparing');
+  ui.remoteEntryBtn.classList.toggle('is-connected', r.status === 'connected');
+
+  if (r.status === 'connected') {
+    ui.remoteEntryBadge.textContent = '연결됨';
+    ui.remoteEntryStatus.textContent = r.role === 'observer'
+      ? '관찰자 모드 · 탭하여 열기'
+      : '관찰자 폰이 제어 중';
+  } else if (r.status === 'waiting') {
+    ui.remoteEntryBadge.textContent = '대기';
+    ui.remoteEntryStatus.textContent = r.role === 'observer'
+      ? '측정 폰의 연결을 기다리는 중'
+      : '관찰자 폰 연결 대기 중';
+  } else if (r.status === 'preparing') {
+    ui.remoteEntryBadge.textContent = '준비';
+    ui.remoteEntryStatus.textContent = '연결 코드를 만드는 중…';
+  } else if (r.status === 'closed') {
+    ui.remoteEntryBadge.textContent = '끊김';
+    ui.remoteEntryStatus.textContent = '연결이 끊겼습니다 · 다시 연결';
+  } else {
+    ui.remoteEntryBadge.textContent = '2대';
+    ui.remoteEntryStatus.textContent = '다른 폰에서 계수·일시정지·종료';
+  }
+  syncManualCard();
+}
+
+function syncManualCard() {
+  const connected = isRemoteSensor();
+  ui.manualRemoteTag.hidden = !connected;
+  ui.manualCard.classList.toggle('is-remote', connected);
+  const sub = ui.manualBtn.querySelector('small');
+  if (connected) {
+    ui.manualToggle.checked = true;
+    ui.manualBtn.disabled = true;
+    if (sub) sub.textContent = '관찰자 폰에서 계수 중';
+    ui.manualHint.textContent = '관찰자 폰에서 계수 중입니다. 이 폰에서는 조작하지 않아도 됩니다.';
+  } else {
+    if (sub) sub.textContent = '탭하여 +1';
+    ui.manualHint.textContent = '검증용입니다. 환자와 같은 속도로 직접 세어 보세요.';
+    if (state.live) {
+      ui.manualBtn.disabled = !ui.manualToggle.checked || !!state.live.paused;
+    }
+  }
+}
+
+function resetObserverState() {
+  state.remote.observer = { count: 0, phase: 'idle', elapsed: 0, sid: undefined, synced: false };
+}
+
+function stopScan(restoreModal = true) {
+  state.remote.scanner?.stop?.();
+  state.remote.scanner = null;
+  ui.scanner.hidden = true;
+  if (restoreModal && ui.modalRemote.hidden && state.remote.step !== 'connected') {
+    ui.modalRemote.hidden = false;
+    document.body.style.overflow = 'hidden';
+  }
+}
+
+function teardownLink() {
+  const link = state.remote.link;
+  state.remote.link = null;
+  clearPairTimer();
+  if (link) link.close();
+  stopScan(false);
+}
+
+/* 연결 코드를 주고받은 뒤 ICE가 붙지 않으면 화면이 "연결하는 중"에 머무릅니다.
+   실패로 단정하지 않고, 확인할 수 있는 안내로 바꿔 줍니다. */
+function clearPairTimer() {
+  clearTimeout(state.remote.pairTimer);
+  state.remote.pairTimer = null;
+}
+
+function startPairTimer(ms, onTimeout) {
+  clearPairTimer();
+  state.remote.pairTimer = setTimeout(() => {
+    state.remote.pairTimer = null;
+    if (state.remote.status === 'connected') return;
+    onTimeout();
+  }, ms);
+}
+
+function openRemoteModal() {
+  if (state.measuring) {
+    toast('측정 중에는 원격 연결을 변경할 수 없습니다.');
+    return;
+  }
+  if (state.remote.role === 'observer' && state.remote.status === 'connected') {
+    showObserverScreen();
+    return;
+  }
+  if (!remoteSupported()) {
+    toast('이 브라우저에서는 두 폰 연결을 지원하지 않습니다.', 'error');
+    return;
+  }
+  modalOpen(ui.modalRemote);
+  ui.remoteCopyHint.textContent = '';
+  ui.remoteAnswerHint.textContent = '';
+  ui.remoteOfferHint.textContent = '';
+
+  if (state.remote.status === 'connected' && state.remote.role === 'sensor') {
+    updateRemoteOkMeta();
+    showRemoteStep('connected');
+  } else if (state.remote.status === 'waiting' && state.remote.role === 'sensor' && state.remote.offer) {
+    renderOfferCode(state.remote.offer);
+    showRemoteStep('sensor-offer');
+  } else if (state.remote.status === 'waiting' && state.remote.role === 'observer' && state.remote.answer) {
+    renderAnswerCode(state.remote.answer);
+    showRemoteStep('observer-answer');
+  } else {
+    showRemoteStep('choose');
+  }
+}
+
+function closeRemoteModal() {
+  stopScan();
+  modalClose(ui.modalRemote);
+}
+
+function updateRemoteOkMeta() {
+  ui.remoteOkMeta.textContent = state.measuring
+    ? '측정이 진행 중입니다. 관찰자 폰에서 계수와 일시정지를 조작할 수 있습니다.'
+    : '관찰자 폰에서 계수와 일시정지·종료를 조작할 수 있습니다.';
+}
+
+async function copyRemoteCode(input, hint) {
+  const value = String(input?.value || '');
+  if (!value) return;
+  let done = false;
+  try {
+    await navigator.clipboard.writeText(value);
+    done = true;
+  } catch {
+    try {
+      input.focus();
+      input.select();
+      input.setSelectionRange(0, value.length);
+      done = document.execCommand('copy');
+    } catch {
+      done = false;
+    }
+  }
+  hint.textContent = done ? '복사했습니다' : '길게 눌러 직접 복사하세요';
+  hint.classList.toggle('is-error', !done);
+  clearTimeout(state.remote.copyTimer);
+  state.remote.copyTimer = setTimeout(() => {
+    hint.textContent = '';
+    hint.classList.remove('is-error');
+  }, 2600);
+}
+
+function renderOfferCode(code) {
+  ui.remoteOfferCode.value = code;
+  const ok = renderQr(ui.remoteQrOffer, code);
+  const box = ui.remoteQrOffer.closest('.qr-box');
+  if (box) box.hidden = !ok;
+  ui.remoteCopyHint.textContent = ok ? '' : 'QR을 표시할 수 없습니다. 코드를 복사해 전달하세요.';
+  ui.remoteCopyHint.classList.toggle('is-error', !ok);
+}
+
+function renderAnswerCode(code) {
+  ui.remoteAnswerCode.value = code;
+  const ok = renderQr(ui.remoteQrAnswer, code);
+  const box = ui.remoteQrAnswer.closest('.qr-box');
+  if (box) box.hidden = !ok;
+  ui.remoteWaitText.textContent = ok
+    ? '측정 폰의 연결을 기다리는 중…'
+    : 'QR이 너무 커서 표시할 수 없습니다. 코드를 복사해 측정 폰에 붙여넣으세요.';
+}
+
+async function beginSensorPairing() {
+  teardownLink();
+  state.remote.role = 'sensor';
+  state.remote.status = 'preparing';
+  state.remote.offer = '';
+  state.remote.answer = '';
+  resetObserverState();
+  updateRemoteEntry();
+
+  showRemoteStep('sensor-offer');
+  ui.remoteQrOffer.replaceChildren();
+  const box = ui.remoteQrOffer.closest('.qr-box');
+  if (box) box.hidden = true;
+  ui.remoteOfferCode.value = '';
+  ui.remoteCopyHint.textContent = '연결 코드를 만드는 중…';
+  ui.remoteCopyHint.classList.remove('is-error');
+  ui.remoteToAnswer.disabled = true;
+
+  const link = new RemoteLink('sensor');
+  state.remote.link = link;
+  bindRemoteLink(link);
+
+  try {
+    const code = await link.createOffer();
+    if (state.remote.link !== link) return;
+    state.remote.offer = code;
+    state.remote.status = 'waiting';
+    renderOfferCode(code);
+    updateRemoteEntry();
+  } catch (error) {
+    if (state.remote.link !== link) return;
+    teardownLink();
+    state.remote.status = 'off';
+    state.remote.role = null;
+    updateRemoteEntry();
+    showRemoteStep('choose');
+    toast(error?.message || '연결 코드를 만들지 못했습니다.', 'error');
+  } finally {
+    ui.remoteToAnswer.disabled = false;
+  }
+}
+
+async function applyObserverAnswer() {
+  const code = ui.remoteAnswerInput.value.trim();
+  if (!code) {
+    ui.remoteAnswerHint.textContent = '관찰자 폰에 표시된 코드를 입력하세요.';
+    ui.remoteAnswerHint.classList.add('is-error');
+    return;
+  }
+  const link = state.remote.link;
+  if (!link) {
+    ui.remoteAnswerHint.textContent = '연결이 만료되었습니다. 연결 코드를 다시 만들어 주세요.';
+    ui.remoteAnswerHint.classList.add('is-error');
+    return;
+  }
+  ui.remoteConnect.disabled = true;
+  const previous = ui.remoteConnect.textContent;
+  ui.remoteConnect.textContent = '연결 중…';
+  ui.remoteAnswerHint.textContent = '연결하는 중…';
+  ui.remoteAnswerHint.classList.remove('is-error');
+  try {
+    await link.acceptAnswer(code);
+    startPairTimer(15000, () => {
+      // 같은 answer로는 다시 붙지 않으므로 첫 단계로 되돌려 새 코드를 만들게 합니다.
+      teardownLink();
+      state.remote.status = 'off';
+      state.remote.role = null;
+      state.remote.offer = '';
+      state.remote.answer = '';
+      updateRemoteEntry();
+      showRemoteStep('choose');
+      toast('연결되지 않았습니다. 두 폰이 같은 Wi-Fi인지 확인한 뒤 다시 시도해 주세요.', 'error');
+    });
+  } catch (error) {
+    ui.remoteAnswerHint.textContent = error?.message || '연결하지 못했습니다.';
+    ui.remoteAnswerHint.classList.add('is-error');
+  } finally {
+    ui.remoteConnect.disabled = false;
+    ui.remoteConnect.textContent = previous;
+  }
+}
+
+function beginObserverPairing() {
+  teardownLink();
+  state.remote.role = 'observer';
+  state.remote.status = 'off';
+  state.remote.offer = '';
+  state.remote.answer = '';
+  resetObserverState();
+  updateRemoteEntry();
+  ui.remoteOfferInput.value = '';
+  ui.remoteOfferHint.textContent = '';
+  ui.remoteOfferHint.classList.remove('is-error');
+  showRemoteStep('observer-scan');
+}
+
+async function createObserverAnswer() {
+  const code = ui.remoteOfferInput.value.trim();
+  if (!code) {
+    ui.remoteOfferHint.textContent = '측정 폰에 표시된 코드를 입력하세요.';
+    ui.remoteOfferHint.classList.add('is-error');
+    return;
+  }
+  ui.remoteMakeAnswer.disabled = true;
+  const previous = ui.remoteMakeAnswer.textContent;
+  ui.remoteMakeAnswer.textContent = '준비 중…';
+  ui.remoteOfferHint.textContent = '';
+  ui.remoteOfferHint.classList.remove('is-error');
+
+  const link = new RemoteLink('observer');
+  state.remote.link = link;
+  bindRemoteLink(link);
+  try {
+    const answer = await link.acceptOffer(code);
+    if (state.remote.link !== link) return;
+    state.remote.answer = answer;
+    state.remote.status = 'waiting';
+    renderAnswerCode(answer);
+    showRemoteStep('observer-answer');
+    updateRemoteEntry();
+    startPairTimer(60000, () => {
+      ui.remoteWaitText.textContent = '아직 연결되지 않았습니다. 측정 폰에서 이 코드를 입력했는지 확인해 주세요.';
+    });
+  } catch (error) {
+    if (state.remote.link === link) {
+      teardownLink();
+      state.remote.status = 'off';
+    }
+    updateRemoteEntry();
+    ui.remoteOfferHint.textContent = error?.message || '연결 코드를 읽지 못했습니다.';
+    ui.remoteOfferHint.classList.add('is-error');
+  } finally {
+    ui.remoteMakeAnswer.disabled = false;
+    ui.remoteMakeAnswer.textContent = previous;
+  }
+}
+
+function bindRemoteLink(link) {
+  link.addEventListener('open', () => {
+    if (state.remote.link !== link) return;
+    clearPairTimer();
+    state.remote.status = 'connected';
+    updateRemoteEntry();
+
+    if (state.remote.role === 'sensor') {
+      updateRemoteOkMeta();
+      showRemoteStep('connected');
+      syncManualCard();
+      sendRemoteState(true);
+      toast('관찰자 폰이 연결되었습니다.');
+    } else {
+      modalClose(ui.modalRemote);
+      showObserverScreen();
+      toast('측정 폰에 연결되었습니다.');
+    }
+  });
+
+  link.addEventListener('message', (event) => {
+    if (state.remote.link !== link) return;
+    if (state.remote.role === 'sensor') handleObserverMessage(event.detail);
+    else handleSensorMessage(event.detail);
+  });
+
+  link.addEventListener('close', () => {
+    if (state.remote.link !== link) return;
+    clearPairTimer();
+    state.remote.link = null;
+    state.remote.status = 'closed';
+    updateRemoteEntry();
+
+    if (state.remote.role === 'sensor') {
+      if (state.measuring) {
+        ui.liveNote.textContent = '관찰자 폰 연결이 끊겼습니다. 이 폰에서 직접 계수할 수 있습니다.';
+      }
+      if (!ui.modalRemote.hidden) showRemoteStep('choose');
+      toast('관찰자 폰 연결이 끊겼습니다.', 'error');
+    } else {
+      ui.obsLink.textContent = '연결 끊김';
+      ui.obsLink.classList.add('is-off');
+      renderObserver();
+      toast('측정 폰과의 연결이 끊겼습니다.', 'error');
+    }
+  });
+}
+
+function handleObserverMessage(msg) {
+  if (msg.t === 'count') {
+    applyRemoteCount(msg.n);
+    return;
+  }
+  if (msg.t === 'cmd') {
+    if (msg.action === 'pause' && state.measuring && !state.live?.paused) {
+      pauseSession(true);
+      toast('관찰자 폰에서 일시정지했습니다.');
+    } else if (msg.action === 'resume' && state.measuring && state.live?.paused) {
+      resumeSession(true);
+      toast('관찰자 폰에서 측정을 재개했습니다.');
+    } else if (msg.action === 'stop') {
+      remoteStopSession();
+    }
+    return;
+  }
+  if (msg.t === 'hello') sendRemoteState(true);
+}
+
+function applyRemoteCount(n) {
+  const value = Math.max(0, Math.min(9999, Math.round(Number(n) || 0)));
+  state.remote.count = value;
+  if (!state.live || state.live.finished) return;
+  state.live.manual = value;
+  ui.manualCount.textContent = String(value);
+  ui.manualToggle.checked = true;
+  ui.manualBtn.disabled = true;
+  ui.manualCard.classList.add('is-remote');
+  ui.manualRemoteTag.hidden = false;
+}
+
+function remotePhase() {
+  if (!state.live) return 'idle';
+  if (state.live.finished) return 'ended';
+  return state.live.paused ? 'paused' : 'running';
+}
+
+function sendRemoteState(force = false) {
+  const link = state.remote.link;
+  if (!link?.isOpen) return;
+  const now = performance.now();
+  if (!force && now - state.remote.lastPush < 240) return;
+  state.remote.lastPush = now;
+  const live = state.live;
+  link.send({
+    t: 'state',
+    phase: remotePhase(),
+    elapsed: Math.round(live?.finished ? (live.durationSec || 0) : (live?.lastSnap?.elapsed || 0)),
+    sid: live?.startedAt || null,
+    manual: live?.manual || 0,
+    calib: !!live?.calib,
+  });
+}
+
+function remoteStopSession() {
+  if (!state.controller || !state.measuring) return;
+  if (!state.live.paused) pauseSession(true);
+  toast('관찰자 폰에서 측정을 종료했습니다.');
+  state.controller.stop('remote');
+}
+
+/* ---------------- observer phone ---------------- */
+
+function showObserverScreen() {
+  state.remote.observer.synced = false;
+  ui.obsLink.textContent = '연결됨';
+  ui.obsLink.classList.remove('is-off');
+  renderObserver();
+  requestObserverWakeLock();
+  showScreen('observer');
+}
+
+function renderObserver() {
+  const o = state.remote.observer;
+  ui.obsTimer.textContent = fmtClock(o.elapsed);
+  ui.obsPhase.textContent = REMOTE_PHASE_TEXT[o.phase] || REMOTE_PHASE_TEXT.idle;
+  ui.obsCount.textContent = String(o.count);
+
+  const active = o.phase === 'running' || o.phase === 'paused';
+  ui.obsPlus.disabled = o.phase !== 'running';
+  ui.obsPlus.dataset.phase = o.phase;
+  ui.obsMinus.disabled = !active;
+  ui.obsReset.disabled = !active;
+  ui.obsPause.disabled = !active;
+  ui.obsStop.disabled = !active;
+
+  const paused = o.phase === 'paused';
+  const label = ui.obsPause.querySelector('span');
+  const use = ui.obsPause.querySelector('use');
+  if (label) label.textContent = paused ? '계속 측정' : '일시정지';
+  if (use) use.setAttribute('href', paused ? '#i-play' : '#i-pause');
+}
+
+function handleSensorMessage(msg) {
+  if (msg.t !== 'state') return;
+  const o = state.remote.observer;
+  const sid = msg.sid || null;
+  const newSession = sid !== o.sid;
+  if (newSession) o.sid = sid;
+  o.phase = REMOTE_PHASE_TEXT[msg.phase] ? msg.phase : 'idle';
+  o.elapsed = Math.max(0, Number(msg.elapsed) || 0);
+  if (newSession || !o.synced) {
+    o.synced = true;
+    o.count = Math.max(0, Math.min(9999, Math.round(Number(msg.manual) || 0)));
+  }
+  renderObserver();
+}
+
+function observerAdd(delta) {
+  const o = state.remote.observer;
+  if (!state.remote.link?.isOpen) {
+    toast('측정 폰과 연결이 끊겼습니다.', 'error');
+    return;
+  }
+  if (o.phase !== 'running' && o.phase !== 'paused') return;
+  const next = Math.max(0, Math.min(9999, o.count + delta));
+  if (next === o.count) return;
+  o.count = next;
+  renderObserver();
+  state.remote.link.send({ t: 'count', n: next });
+  if (delta > 0) {
+    try { navigator.vibrate?.(10); } catch { /* ignore */ }
+    ui.obsCount.classList.remove('is-step');
+    void ui.obsCount.offsetWidth;
+    ui.obsCount.classList.add('is-step');
+  }
+}
+
+async function observerCommand(action) {
+  const link = state.remote.link;
+  if (!link?.isOpen) {
+    toast('측정 폰과 연결이 끊겼습니다.', 'error');
+    return;
+  }
+  if (action === 'stop') {
+    const ok = await askConfirm({
+      title: '측정을 종료할까요?',
+      body: `관찰자 계수 ${state.remote.observer.count}보로 측정을 종료합니다. 측정 폰에 결과가 표시됩니다.`,
+      confirm: '종료',
+      danger: true,
+    });
+    if (!ok) return;
+  }
+  link.send({ t: 'cmd', action });
+  if (action === 'pause') state.remote.observer.phase = 'paused';
+  if (action === 'resume') state.remote.observer.phase = 'running';
+  renderObserver();
+}
+
+async function leaveObserver() {
+  const ok = await askConfirm({
+    title: '관찰자 모드를 종료할까요?',
+    body: '측정 폰과의 연결이 끊어집니다. 진행 중인 측정은 측정 폰에서 계속됩니다.',
+    confirm: '종료',
+    danger: true,
+  });
+  if (!ok) return;
+  teardownLink();
+  state.remote.status = 'off';
+  state.remote.role = null;
+  state.remote.offer = '';
+  state.remote.answer = '';
+  resetObserverState();
+  releaseObserverWakeLock();
+  updateRemoteEntry();
+  showScreen('measure');
+}
+
+function disconnectRemote() {
+  teardownLink();
+  state.remote.status = 'off';
+  state.remote.role = null;
+  state.remote.offer = '';
+  state.remote.answer = '';
+  resetObserverState();
+  releaseObserverWakeLock();
+  updateRemoteEntry();
+  showRemoteStep('choose');
+  toast('원격 연결을 해제했습니다.');
+}
+
+async function requestObserverWakeLock() {
+  if (!getSettings().wakeLock || !navigator.wakeLock || state.obsWakeLock) return;
+  try {
+    state.obsWakeLock = await navigator.wakeLock.request('screen');
+    state.obsWakeLock.addEventListener('release', () => { state.obsWakeLock = null; });
+  } catch {
+    state.obsWakeLock = null;
+  }
+}
+
+function releaseObserverWakeLock() {
+  try { state.obsWakeLock?.release?.(); } catch { /* ignore */ }
+  state.obsWakeLock = null;
+}
+
+/* ---------------- QR camera scanner ---------------- */
+
+async function scanInto(input, hint) {
+  if (!scannerSupported()) {
+    hint.textContent = '이 브라우저에서는 카메라를 사용할 수 없습니다. 코드를 직접 붙여넣으세요.';
+    hint.classList.add('is-error');
+    return;
+  }
+  closeRemoteModalQuiet();
+  ui.scanner.hidden = false;
+  ui.scannerHint.textContent = 'QR 코드를 사각형 안에 맞추세요';
+  try {
+    state.remote.scanner = await startScanner({
+      video: ui.scannerVideo,
+      canvas: ui.scannerCanvas,
+      onResult: (text) => {
+        stopScan();
+        input.value = text;
+        hint.textContent = '코드를 읽었습니다';
+        hint.classList.remove('is-error');
+        if (input === ui.remoteAnswerInput) applyObserverAnswer();
+        else if (input === ui.remoteOfferInput) createObserverAnswer();
+      },
+    });
+  } catch (error) {
+    stopScan();
+    hint.textContent = error?.message || '카메라를 열 수 없습니다.';
+    hint.classList.add('is-error');
+  }
+}
+
+// Scanner sits above the modal; hide the dialog without resetting the pairing state.
+function closeRemoteModalQuiet() {
+  ui.modalRemote.hidden = true;
+}
 
 /* ------------------------------------------------------------------ */
 /* Settings, diagnostics and data tools                                */
@@ -1718,9 +2393,11 @@ function bindEvents() {
 
   document.addEventListener('keydown', (event) => {
     if (event.key !== 'Escape') return;
-    if (!ui.modalConfirm.hidden) settleConfirm(false);
+    if (!ui.scanner.hidden) stopScan();
+    else if (!ui.modalConfirm.hidden) settleConfirm(false);
     else if (!ui.modalStart.hidden) modalClose(ui.modalStart);
     else if (!ui.modalCalib.hidden) modalClose(ui.modalCalib);
+    else if (!ui.modalRemote.hidden) closeRemoteModal();
   });
 
   ui.pauseBtn.addEventListener('click', togglePause);
@@ -1728,7 +2405,7 @@ function bindEvents() {
   ui.liveSettingsBtn.addEventListener('click', () => toast('측정을 종료한 뒤 설정을 변경할 수 있습니다.'));
 
   ui.manualToggle.addEventListener('change', () => {
-    ui.manualBtn.disabled = !ui.manualToggle.checked || !!state.live?.paused;
+    ui.manualBtn.disabled = !ui.manualToggle.checked || !!state.live?.paused || isRemoteSensor();
   });
   ui.manualBtn.addEventListener('click', () => {
     if (!state.live || ui.manualBtn.disabled) return;
@@ -1769,6 +2446,55 @@ function bindEvents() {
   });
   ui.calibReset.addEventListener('click', resetCalibration);
   ui.runBenchmark.addEventListener('click', runBenchmarkClick);
+
+  ui.remoteEntryBtn.addEventListener('click', openRemoteModal);
+  $$('[data-close-remote]').forEach((el) => el.addEventListener('click', closeRemoteModal));
+  ui.roleSensor.addEventListener('click', beginSensorPairing);
+  ui.roleObserver.addEventListener('click', beginObserverPairing);
+  ui.remoteToAnswer.addEventListener('click', () => showRemoteStep('sensor-answer'));
+  ui.remoteBackOffer.addEventListener('click', () => {
+    renderOfferCode(state.remote.offer);
+    showRemoteStep('sensor-offer');
+  });
+  ui.remoteConnect.addEventListener('click', applyObserverAnswer);
+  ui.remoteCopyOffer.addEventListener('click', () => copyRemoteCode(ui.remoteOfferCode, ui.remoteCopyHint));
+  ui.remoteScanAnswer.addEventListener('click', () => scanInto(ui.remoteAnswerInput, ui.remoteAnswerHint));
+  ui.remoteMakeAnswer.addEventListener('click', createObserverAnswer);
+  ui.remoteBackScan.addEventListener('click', () => {
+    ui.remoteOfferHint.textContent = '';
+    ui.remoteOfferHint.classList.remove('is-error');
+    showRemoteStep('observer-scan');
+  });
+  ui.remoteCopyAnswer.addEventListener('click', () => copyRemoteCode(ui.remoteAnswerCode, ui.remoteAnswerCopyHint));
+  ui.remoteScanOffer.addEventListener('click', () => scanInto(ui.remoteOfferInput, ui.remoteOfferHint));
+  ui.remoteDisconnect.addEventListener('click', disconnectRemote);
+  ui.remoteAnswerInput.addEventListener('input', () => {
+    ui.remoteAnswerHint.textContent = '';
+    ui.remoteAnswerHint.classList.remove('is-error');
+  });
+  ui.remoteOfferInput.addEventListener('input', () => {
+    ui.remoteOfferHint.textContent = '';
+    ui.remoteOfferHint.classList.remove('is-error');
+  });
+  ui.scannerClose.addEventListener('click', () => stopScan());
+
+  ui.obsPlus.addEventListener('click', () => observerAdd(1));
+  ui.obsMinus.addEventListener('click', () => observerAdd(-1));
+  ui.obsReset.addEventListener('click', () => {
+    const o = state.remote.observer;
+    if (!state.remote.link?.isOpen || (o.phase !== 'running' && o.phase !== 'paused')) return;
+    o.count = 0;
+    renderObserver();
+    state.remote.link.send({ t: 'count', n: 0 });
+  });
+  ui.obsPause.addEventListener('click', () => {
+    observerCommand(state.remote.observer.phase === 'paused' ? 'resume' : 'pause');
+  });
+  ui.obsStop.addEventListener('click', () => observerCommand('stop'));
+  ui.obsExit.addEventListener('click', leaveObserver);
+  document.addEventListener('visibilitychange', () => {
+    if (!document.hidden && state.currentScreen === 'observer') requestObserverWakeLock();
+  });
 
   ui.saveProfile.addEventListener('click', saveProfileForm);
   $$('#sensitivityGroup .seg').forEach((btn) => {
@@ -1841,6 +2567,7 @@ function init() {
   selectProtocol('free');
   renderRecent();
   sensorReadyChip();
+  updateRemoteEntry();
   bindEvents();
   registerServiceWorker();
   const action = new URLSearchParams(location.search).get('action');

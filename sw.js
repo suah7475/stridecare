@@ -2,7 +2,7 @@
  * 같은 출처의 앱 셸은 네트워크 우선, 실패 시 캐시로 폴백합니다.
  * 측정 데이터는 IndexedDB/localStorage에만 저장되며 서비스 워커가 전송하지 않습니다.
  */
-const VERSION = 'stridecare-v7';
+const VERSION = 'stridecare-v9';
 const APP_CACHE = `${VERSION}-shell`;
 const RUNTIME_CACHE = `${VERSION}-runtime`;
 
@@ -17,6 +17,10 @@ const APP_SHELL = [
   './js/charts.js',
   './js/calibrate.js',
   './js/benchmark.js',
+  './js/remote.js',
+  './js/qr.js',
+  './js/vendor/qrcode.min.js',
+  './js/vendor/jsqr.min.js',
   './js/core/detector.js',
   './js/core/dsp.js',
   './js/core/simulator.js',
